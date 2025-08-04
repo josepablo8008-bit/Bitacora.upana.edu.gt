@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro de Llamadas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to right, #2c5364, #203a43, #0f2027);
+      background-attachment: fixed;
+    }
+  </style>
+</head>
+<body class="text-white p-6">
+
+<div id="login" class="flex flex-col items-center justify-center min-h-screen">
+  <div class="bg-white text-black p-8 rounded-lg shadow-xl w-full max-w-md">
+    <h2 class="text-2xl font-bold mb-4 text-center">🔐 Ingreso al Sistema</h2>
+    <label class="block mb-2">Usuario</label>
+    <input id="inputUsuario" class="w-full p-2 border rounded mb-4" placeholder="usuario" />
+    <label class="block mb-2">Contraseña</label>
+    <input id="inputPass" type="password" class="w-full p-2 border rounded mb-4" placeholder="********" />
+    <button onclick="verificarLogin()" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Entrar</button>
+    <p id="errorLogin" class="text-red-600 text-sm mt-4 hidden">❌ Usuario o contraseña incorrectos.</p>
+  </div>
+</div>
+
+<div id="contenido" class="hidden">
+  <div class="flex space-x-4 mb-6">
+    <button onclick="mostrarPestana('registro')" class="bg-blue-600 px-4 py-2 rounded">📞 Registro</button>
+    <button onclick="mostrarPestana('dashboard')" class="bg-green-600 px-4 py-2 rounded">📊 Dashboard</button>
+  </div>
+
+  <div id="registro" class="bg-white text-black rounded-xl shadow-xl p-6">
+    <h1 class="text-3xl font-bold text-center mb-4">📞 Registro de Llamadas</h1>
+    <p class="mb-4 font-semibold">Agente: <span id="agenteNombre" class="text-blue-700"></span></p>
+
+    <div class="my-4">
+      <label class="block font-bold mb-1">🎨 Selecciona tu color para el dashboard:</label>
+      <input type="color" id="colorAgente" class="w-20 h-10 border border-gray-300 rounded">
+      <button onclick="guardarColorAgente()" class="ml-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Guardar</button>
+      <p id="colorError" class="text-red-600 mt-2 hidden">⚠️ Este color ya fue seleccionado por otro agente.</p>
+    </div>
+
+    <form id="formLlamada" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <input type="text" id="id" class="p-2 border rounded" placeholder="ID" />
+      <input type="text" id="cliente" class="p-2 border rounded" placeholder="Nombre" />
+      <input type="text" id="motivo" class="p-2 border rounded" placeholder="Motivo" />
+      <input type="text" id="comentario" class="p-2 border rounded" placeholder="Comentario de seguimiento (opcional)" />
+      <input type="hidden" id="fecha" />
+      <input type="text" id="numero" class="p-2 border rounded" placeholder="Número" />
+      <button type="submit" class="bg-blue-600 text-white col-span-1 md:col-span-3 p-2 rounded hover:bg-blue-700">Registrar</button>
+    </form>
+
+    <div class="mt-6">
+      <h2 class="text-xl font-semibold mb-2">🔍 Buscar Seguimiento</h2>
+      <input type="text" id="buscarId" class="p-2 border rounded mb-2 mr-2" placeholder="ID">
+      <input type="text" id="buscarNombre" class="p-2 border rounded mb-2 mr-2" placeholder="Nombre">
+      <button onclick="buscarSeguimiento()" class="bg-green-600 text-white p-2 rounded hover:bg-green-700">Buscar Seguimiento</button>
+    </div>
+
+    <div id="resultadosSeguimiento" class="mt-4"></div>
+
+    <div class="mt-6">
+      <h2 class="text-xl font-semibold mb-2">📋 Bitácora personal</h2>
+      <div id="bitacoraUsuario" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <div id="dashboard" class="hidden bg-white text-black rounded-xl shadow-xl p-6">
+    <h2 class="text-2xl font-bold text-center mb-4">📊 Dashboard de Llamadas</h2>
+    <div class="flex justify-center">
+  <canvas id="graficaAgentes" width="80" height="80"></canvas>
+</div>
+  </div>
+</div>
+
+<script>
+  let usuarioActual = "";
+  const registros = [];
+  const coloresUsados = {};
+
+  function verificarLogin() {
+    const usuario = document.getElementById("inputUsuario").value;
+    usuarioActual = usuario;
+    const nombres = {
+      "jmar": "Joselyn Maria Anita Juárez",
+      "mire": "María Irene Velásquez",
+      "jste": "Jackeline Stephanie Castillo Calderón",
+      "jpab": "José Pablo Ibañez Ibañez",
+      "ndan": "Néstor Daniel Ozuna Galvez",
+      "tiza": "Tania Izamar de León Quiñonez",
+      "esar": "Evelin Saraí Churumia Gómez",
+      "mmar": "Mayra Maribel Arévalo Ruiz",
+      "mcar": "Merlin Carolina Baján Ibañez",
+      "jale": "José Alejandro Vásquez Alvarez",
+      "esar1": "Evelyn Sarahí de León Lorenzana",
+      "cdan": "César Daniel Coyoy",
+      "mart": "Marta",
+      "jand": "José Andres Marin Ramos",
+      "jmis": "Josabeth Mishell de León Flores",
+      "jraf": "Jonatan Rafael"
+    };
+    document.getElementById("agenteNombre").textContent = nombres[usuario] || usuario;
+document.getElementById("login").classList.add("hidden");
+    document.getElementById("contenido").classList.remove("hidden");
+    mostrarPestana('registro');
+  }
+
+  function mostrarPestana(id) {
+    document.getElementById("registro").classList.add("hidden");
+    document.getElementById("dashboard").classList.add("hidden");
+    document.getElementById(id).classList.remove("hidden");
+    if (id === 'dashboard') setTimeout(actualizarGrafico, 100);
+  }
+
+  function guardarColorAgente() {
+    const color = document.getElementById("colorAgente").value;
+    if (coloresUsados[color] && coloresUsados[color] !== usuarioActual) {
+      document.getElementById("colorError").classList.remove("hidden");
+      return;
+    }
+    coloresUsados[color] = usuarioActual;
+    document.getElementById("colorError").classList.add("hidden");
+  }
+
+  function actualizarGrafico() {
+    const canvas = document.getElementById("graficaAgentes");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    const agentesUnicos = [...new Set(registros.map(r => r.agente))];
+    const colores = agentesUnicos.map(a => {
+      const color = Object.entries(coloresUsados).find(([c, u]) => u === a);
+      return color ? color[0] : '#' + Math.floor(Math.random()*16777215).toString(16);
+    });
+    const conteo = agentesUnicos.map(a => registros.filter(r => r.agente === a).length);
+
+    if (window.miGrafico) window.miGrafico.destroy();
+    window.miGrafico = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: agentesUnicos,
+        datasets: [{
+          label: 'Llamadas por agente',
+          data: conteo,
+          backgroundColor: colores,
+        }]
+      }
+    });
+  }
+
+  function buscarSeguimiento() {
+    const id = document.getElementById("buscarId").value;
+    const nombre = document.getElementById("buscarNombre").value;
+    const resultados = registros.filter(r =>
+      (!id || r.id.toLowerCase().includes(id.toLowerCase())) &&
+      (!nombre || r.cliente.toLowerCase().includes(nombre.toLowerCase()))
+    );
+    const contenedor = document.getElementById("resultadosSeguimiento");
+    contenedor.innerHTML = resultados.map(r => `<div class="bg-gray-100 text-black p-2 my-2 rounded">ID: ${r.id} | Nombre: ${r.cliente} | Comentario: ${r.comentario} | Recordatorio: ${r.recordatorio || 'N/A'} <button onclick="eliminarRegistro('${r.id}')" class="ml-2 text-red-600">❌ Eliminar</button></div>`).join('');
+  }
+
+  function eliminarRegistro(id) {
+  if (!confirm('¿Seguro que deseas eliminar este registro?')) return;
+  const index = registros.findIndex(r => r.id === id && r.agente === usuarioActual);
+  if (index !== -1) registros.splice(index, 1);
+  mostrarBitacora();
+  buscarSeguimiento();
+  actualizarGrafico();
+}
+
+  document.getElementById("formLlamada").addEventListener("submit", e => {
+    e.preventDefault();
+    const nuevo = {
+      id: ('000000000' + document.getElementById("id").value).slice(-9),
+      cliente: document.getElementById("cliente").value,
+      motivo: document.getElementById("motivo").value,
+      comentario: document.getElementById("comentario").value,
+      fecha: new Date().toLocaleString(),
+      numero: document.getElementById("numero").value,
+      agente: usuarioActual
+    };
+    registros.push(nuevo);
+    mostrarBitacora();
+    actualizarGrafico();
+    e.target.reset();
+  });
+function mostrarBitacora() {
+  const contenedor = document.getElementById("bitacoraUsuario");
+  const propios = registros.filter(r => r.agente === usuarioActual);
+  contenedor.innerHTML = propios.map(r => `
+    <div class='bg-gray-200 text-black p-1 text-sm rounded'>
+      <strong>ID:</strong> ${r.id} <br>
+      <strong>${r.cliente}</strong> - ${r.motivo}<br>
+      Comentario: ${r.comentario} <br>
+      Fecha: ${r.fecha} <br>
+      Número: ${r.numero} <br>
+      <button onclick="eliminarRegistro('${r.id}')" class="text-red-600">🗑️ Eliminar</button>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
+
